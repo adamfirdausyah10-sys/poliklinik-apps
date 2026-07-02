@@ -11,7 +11,27 @@
             Periksa Pasien
         </h2>
     </div>
+    @if (session('success'))
+        <div class="mb-4 p-4 rounded-lg bg-green-100 text-green-700 font-semibold">
+            {{ session('success') }}
+        </div>
+    @endif
 
+    @if (session('error'))
+        <div class="mb-4 p-4 rounded-lg bg-red-100 text-red-700 font-semibold">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="mb-4 p-4 rounded-lg bg-red-100 text-red-700">
+            <ul class="list-disc list-inside">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     {{-- Card --}}
     <div class="card bg-base-100 shadow-sm rounded-2xl border border-slate-200">
         <div class="card-body p-8">
@@ -30,8 +50,16 @@
                         @foreach ($obats as $obat)
                             <option value="{{ $obat->id }}"
                                 data-nama="{{ $obat->nama_obat }}"
-                                data-harga="{{ $obat->harga }}">
+                                data-harga="{{ $obat->harga }}"
+                                data-stok="{{ $obat->stok }}"
+                                @disabled($obat->stok <= 0)>
                                 {{ $obat->nama_obat }} - Rp{{ number_format($obat->harga) }}
+                                | Stok: {{ $obat->stok }}
+                                @if($obat->stok <= 0)
+                                    (Habis)
+                                @elseif($obat->stok <= 5)
+                                    (Menipis)
+                                @endif
                             </option>
                         @endforeach
                     </select>
@@ -100,10 +128,11 @@
             const id = selectedOption.value;
             const nama = selectedOption.dataset.nama;
             const harga = parseInt(selectedOption.dataset.harga || 0);
+            const stok = parseInt(selectedOption.dataset.stok || 0);
 
             if (!id || daftarObat.some(o => o.id == id)) return;
 
-            daftarObat.push({ id, nama, harga });
+            daftarObat.push({ id, nama, harga, stok });
             renderObat();
             selectObat.selectedIndex = 0;
         });
@@ -118,7 +147,11 @@
                 const item = document.createElement('li');
                 item.className = 'flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700';
                 item.innerHTML = `
-                    <span>${obat.nama} — <span class="font-semibold">Rp ${obat.harga.toLocaleString()}</span></span>
+                    <span>
+                        ${obat.nama} —
+                        <span class="font-semibold">Rp ${obat.harga.toLocaleString()}</span>
+                        <span class="text-xs text-slate-500 ml-2">Stok: ${obat.stok}</span>
+                    </span>
                     <button type="button"
                         onclick="hapusObat(${index})"
                         class="btn btn-sm bg-red-500 hover:bg-red-600 text-white border-none rounded-lg px-3">

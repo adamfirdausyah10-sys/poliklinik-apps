@@ -43,6 +43,28 @@ class PeriksaPasienController extends Controller
 
         $obatIds = json_decode($request->obat_json, true);
 
+        if (!is_array($obatIds) || count($obatIds) === 0) {
+            return back()
+                ->withInput()
+                ->with('error', 'Pilih minimal satu obat.');
+        }
+
+        $obats = Obat::whereIn('id', $obatIds)->get();
+
+        if ($obats->count() !== count(array_unique($obatIds))) {
+            return back()
+                ->withInput()
+                ->with('error', 'Ada obat yang tidak ditemukan.');
+        }
+
+        foreach ($obats as $obat) {
+            if ($obat->stok <= 0) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Stok obat ' . $obat->nama_obat . ' habis.');
+            }
+        }
+
         $periksa = Periksa::create([
             'id_daftar_poli' => $request->id_daftar_poli,
             'tgl_periksa' => now(),
@@ -55,10 +77,12 @@ class PeriksaPasienController extends Controller
                 'id_periksa' => $periksa->id,
                 'id_obat' => $idObat,
             ]);
+
+            Obat::where('id', $idObat)->decrement('stok', 1);
         }
 
         return redirect()
             ->route('periksa-pasien.index')
-            ->with('success', 'Data periksa berhasil disimpan.');
+            ->with('success', 'Data periksa berhasil disimpan dan stok obat berhasil dikurangi.');
     }
 }
